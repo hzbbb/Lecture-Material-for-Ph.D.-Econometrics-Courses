@@ -1,0 +1,480 @@
+---------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\Dropbox\Dropbox\My documents\Rochester\博五下\TA for ECO 485\Stata Recitation\Census_2010 Cleaning.lo
+> g
+  log type:  text
+ opened on:  21 Feb 2020, 11:16:54
+
+. 
+. 
+. /* Census data from China - household level survey - Each observation is a person */
+. /* id: personal identifier; hhid: household identifier */
+. use census2010_1p.dta,clear
+
+. 
+. 
+. /* Change data format */
+. tostring hhid id, format(%100.0g) replace
+hhid was double now str18
+id was long now str7
+
+. destring id,replace
+id: all characters numeric; replaced as long
+
+. 
+. /* Labelling */
+. label var hhid "The ID of the household"                /* Label for variable */
+
+. 
+. label define sex_1 1 "male" 2 "female"                  /* Label for values of a variable */
+
+. tab sex
+
+        sex |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          1 |     24,412       50.88       50.88
+          2 |     23,566       49.12      100.00
+------------+-----------------------------------
+      Total |     47,978      100.00
+
+. label value sex sex_1 
+
+. tab sex
+
+        sex |      Freq.     Percent        Cum.
+------------+-----------------------------------
+       male |     24,412       50.88       50.88
+     female |     23,566       49.12      100.00
+------------+-----------------------------------
+      Total |     47,978      100.00
+
+. 
+. label define sex 1 "male" 
+
+. label define sex 2 "female",add
+
+. label value sex sex 
+
+. 
+. /*** Data Management ***/
+. describe sex
+
+              storage   display    value
+variable name   type    format     label      variable label
+---------------------------------------------------------------------------------------------------------------------
+sex             byte    %10.0g     sex        
+
+. describe _all
+
+              storage   display    value
+variable name   type    format     label      variable label
+---------------------------------------------------------------------------------------------------------------------
+locationcode    str15   %15s                  
+prefect         str4    %9s                   
+hhid            str18   %18s                  The ID of the household
+hhtype          byte    %10.0g                
+relation        byte    %10.0g                
+sex             byte    %10.0g     sex        
+born_year       int     %8.0g                 
+born_month      byte    %8.0g                 
+nationality     byte    %10.0g                
+living_place    byte    %10.0g                
+hukou_place     byte    %10.0g                
+hukou_place_c~e long    %10.0g                
+migtime         int     %10.0g                
+hukoutype       int     %10.0g                
+birthplace      byte    %10.0g                
+literated       int     %10.0g                
+industry        int     %10.0g                
+occupation      int     %10.0g                
+birth_b         int     %8.0g                 
+birth_g         int     %8.0g                 
+sur_b           int     %8.0g                 
+sur_g           int     %8.0g                 
+id              long    %10.0g                
+eduy            float   %9.0g                 
+income          float   %9.0g                 
+
+. des sex
+
+              storage   display    value
+variable name   type    format     label      variable label
+---------------------------------------------------------------------------------------------------------------------
+sex             byte    %10.0g     sex        
+
+. 
+. summarize sex
+
+    Variable |        Obs        Mean    Std. Dev.       Min        Max
+-------------+---------------------------------------------------------
+         sex |     47,978    1.491183    .4999275          1          2
+
+. sum sex
+
+    Variable |        Obs        Mean    Std. Dev.       Min        Max
+-------------+---------------------------------------------------------
+         sex |     47,978    1.491183    .4999275          1          2
+
+. 
+. tabulate sex
+
+        sex |      Freq.     Percent        Cum.
+------------+-----------------------------------
+       male |     24,412       50.88       50.88
+     female |     23,566       49.12      100.00
+------------+-----------------------------------
+      Total |     47,978      100.00
+
+. tab sex
+
+        sex |      Freq.     Percent        Cum.
+------------+-----------------------------------
+       male |     24,412       50.88       50.88
+     female |     23,566       49.12      100.00
+------------+-----------------------------------
+      Total |     47,978      100.00
+
+. 
+. count if sex==1
+  24,412
+
+. 
+. kdensity income                                                 /* Kernel-smoothed density function */
+
+. 
+. rename eduy education
+
+. 
+. gen age=2010-born_year                                  /* Generate new variables */
+
+. 
+. gen province=substr(prefect,1,2)                /* String variable functions */
+
+. destring province,replace
+province: all characters numeric; replaced as byte
+
+. 
+. gen st1="hello"
+
+. 
+. gen st2=substr(st1,1,1)                                 /* substr(string, starting point, number of letters) */
+
+. gen st3=substr(st1,1,2)
+
+. gen st4=substr(st1,2,.)
+
+. gen st5=substr(st1,-2,2)
+
+. 
+. 
+. /* Change sex indicator */
+. gen sex1=.
+(47,978 missing values generated)
+
+. replace sex1=0 if sex==1
+(24,412 real changes made)
+
+. replace sex1=1 if sex==2
+(23,566 real changes made)
+
+. 
+. order id hhid
+
+. sort id hhid
+
+. 
+. drop birthplace                 /* Drop variable */
+
+. drop if literated==2    /* Drop observation */
+(2,179 observations deleted)
+
+. 
+. 
+. /* Simulation - generate an income variable with log-normal distribution */
+. gen temp=rnormal()
+
+. gen income1=exp(temp)*10000                     /* Random variable with a log-normal distribution */
+
+. 
+. gen rand_num=runiform()                         /* Uniform distribution */
+
+. 
+. drop temp
+
+. 
+. 
+. 
+. /** egen function - Generate number of children in the HH **/
+. egen avg_income=mean(income)
+
+. egen tot_income=sum(income)
+
+. 
+. gen chi=1 if relation==2
+(31,631 missing values generated)
+
+. replace chi=0 if relation!=2
+(31,631 real changes made)
+
+. egen numchi_hh=sum(chi),by(hhid)                                        /* by: means implement the function in each
+>  group of the categorical variable */
+
+. label var numchi_hh "Number of Children in HH"
+
+. 
+. 
+. /* xfill - Identify first child's information */
+. net from https://www.sealedenvelope.com/
+---------------------------------------------------------------------------------------------------------------------
+https://www.sealedenvelope.com/
+Programs from Sealed Envelope Ltd
+---------------------------------------------------------------------------------------------------------------------
+
+These programs are provided by Sealed Envelope Ltd.
+For more details on their use visit www.sealedenvelope.com
+
+PACKAGES you could -net describe-:
+    hl                Hosmer-Lemeshow goodness of fit test
+    mlogplot2         Extension to mlogplot to handle two-way interaction terms in mlogit
+    reformat          Reformat regression output
+    rescale           Rescale categorical variables using numbers found in value labels
+    time              Convert strings in HH:MM:SS format to elapsed times and back again
+    xcount            Count longitudinal data
+    xfill             Fill in static variables in longitudinal data
+    xtab              Tabulate longitudinal data
+---------------------------------------------------------------------------------------------------------------------
+
+. 
+. /* Find who is the first child - the child with oldest birthday */
+. tostring born_year born_month, format(%100.0g) replace
+born_year was int now str4
+born_month was byte now str2
+
+. replace born_month="0"+born_month if length(born_month)==1
+(33,591 real changes made)
+
+. gen born_date=born_year+born_month
+
+. destring born_date born_year born_month,replace
+born_date: all characters numeric; replaced as long
+born_year: all characters numeric; replaced as int
+born_month: all characters numeric; replaced as byte
+
+. 
+. egen fc_date=min(born_date) if relation==2,by(hhid)
+(31631 missing values generated)
+
+. destring hhid,replace
+hhid: all characters numeric; replaced as double
+
+. xfill fc_date,i(hhid)
+
+. gen fc=1 if fc_date==born_date & relation==2
+(36,913 missing values generated)
+
+. egen temp=sum(fc),by(hhid)
+
+. 
+. save "$folder\temp.dta",replace
+(note: file D:\Dropbox\Dropbox\My documents\Rochester\博五下\TA for ECO 485\Stata Recitation\temp.dta not found)
+file D:\Dropbox\Dropbox\My documents\Rochester\博五下\TA for ECO 485\Stata Recitation\temp.dta saved
+
+. 
+end of do-file
+
+. do "C:\Users\huang\AppData\Local\Temp\STDb28_000000.tmp"
+
+. reg education sex i.province sex##province,r
+note: 2.sex omitted because of collinearity
+
+Linear regression                               Number of obs     =     42,662
+                                                F(61, 42600)      =      24.68
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0364
+                                                Root MSE          =     2.9289
+
+------------------------------------------------------------------------------
+             |               Robust
+   education |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+         sex |   .5584064   .2680452     2.08   0.037     .0330325     1.08378
+             |
+    province |
+         12  |  -.5610084    .284164    -1.97   0.048    -1.117975   -.0040414
+         13  |  -1.814584   .1890234    -9.60   0.000    -2.185074   -1.444094
+         14  |  -1.608221   .2087181    -7.71   0.000    -2.017312   -1.199129
+         15  |  -1.896115   .2266701    -8.37   0.000    -2.340393   -1.451837
+         21  |  -1.298478   .2103304    -6.17   0.000     -1.71073   -.8862266
+         22  |  -1.411588    .224815    -6.28   0.000     -1.85223   -.9709462
+         23  |  -1.651443   .2094565    -7.88   0.000    -2.061982   -1.240904
+         31  |  -.2517776   .2409047    -1.05   0.296    -.7239555    .2204002
+         32  |  -1.164755   .1951848    -5.97   0.000    -1.547321   -.7821888
+         33  |  -1.736939   .2023897    -8.58   0.000    -2.133627   -1.340251
+         34  |  -1.994929   .1960334   -10.18   0.000    -2.379158     -1.6107
+         35  |   -1.65047   .2170534    -7.60   0.000    -2.075899   -1.225041
+         36  |  -1.874759   .2028497    -9.24   0.000    -2.272348   -1.477169
+         37  |  -1.807504    .190474    -9.49   0.000    -2.180837   -1.434171
+         41  |  -1.860282   .1882709    -9.88   0.000    -2.229297   -1.491268
+         42  |  -1.462389   .1997155    -7.32   0.000    -1.853835   -1.070943
+         43  |   -1.67667   .1975317    -8.49   0.000    -2.063836   -1.289504
+         44  |  -1.458243   .1877034    -7.77   0.000    -1.826145    -1.09034
+         45  |  -2.284788   .2046087   -11.17   0.000    -2.685825   -1.883751
+         46  |  -2.052191   .2541462    -8.07   0.000    -2.550323    -1.55406
+         50  |  -2.355076    .220436   -10.68   0.000    -2.787135   -1.923017
+         51  |  -2.489393    .188337   -13.22   0.000    -2.858537   -2.120249
+         52  |  -2.761602   .2039617   -13.54   0.000    -3.161371   -2.361833
+         53  |  -2.975694   .2076176   -14.33   0.000    -3.382628   -2.568759
+         54  |  -3.604342   .4745022    -7.60   0.000    -4.534375   -2.674308
+         61  |  -1.228636   .2111927    -5.82   0.000    -1.642577   -.8146936
+         62  |  -2.144465   .2244908    -9.55   0.000    -2.584472   -1.704459
+         63  |  -2.178979   .3582309    -6.08   0.000    -2.881119    -1.47684
+         64  |  -1.939887   .3235579    -6.00   0.000    -2.574067   -1.305708
+         65  |   -1.81618   .2269773    -8.00   0.000     -2.26106     -1.3713
+             |
+         sex |
+     female  |          0  (omitted)
+             |
+sex#province |
+  female#12  |  -.6605633    .421413    -1.57   0.117    -1.486541    .1654144
+  female#13  |  -.7732839   .2886837    -2.68   0.007     -1.33911   -.2074582
+  female#14  |  -.8117376   .3134752    -2.59   0.010    -1.426155   -.1973199
+  female#15  |  -.4813951     .34372    -1.40   0.161    -1.155093    .1923029
+  female#21  |  -.9852987   .3149555    -3.13   0.002    -1.602618   -.3679798
+  female#22  |  -.9471694   .3343363    -2.83   0.005    -1.602475   -.2918637
+  female#23  |  -.4326886    .314534    -1.38   0.169    -1.049181    .1838042
+  female#31  |  -1.072939   .3640138    -2.95   0.003    -1.786413   -.3594646
+  female#32  |  -.8692467   .2985113    -2.91   0.004    -1.454335   -.2841587
+  female#33  |  -.8520987   .3059708    -2.78   0.005    -1.451807     -.25239
+  female#34  |  -.9660847   .2957012    -3.27   0.001    -1.545665   -.3865045
+  female#35  |  -.9089202   .3281188    -2.77   0.006    -1.552039    -.265801
+  female#36  |  -1.239055   .3074544    -4.03   0.000    -1.841672   -.6364384
+  female#37  |  -.8620944   .2892889    -2.98   0.003    -1.429106   -.2950824
+  female#41  |   -.682976   .2860238    -2.39   0.017    -1.243588   -.1223636
+  female#42  |   -.803872   .3054651    -2.63   0.009    -1.402589   -.2051544
+  female#43  |  -.8501599    .300126    -2.83   0.005    -1.438413   -.2619071
+  female#44  |  -.7908543   .2854042    -2.77   0.006    -1.350252   -.2314566
+  female#45  |   -.832442   .3059076    -2.72   0.007    -1.432027   -.2328571
+  female#46  |  -.6350668   .3759814    -1.69   0.091    -1.371998    .1018642
+  female#50  |  -.2471376   .3340947    -0.74   0.459    -.9019698    .4076945
+  female#51  |  -.8067665   .2874153    -2.81   0.005    -1.370106   -.2434269
+  female#52  |  -1.012592   .3095403    -3.27   0.001    -1.619297    -.405887
+  female#53  |  -.5751018   .3158295    -1.82   0.069    -1.194134    .0439301
+  female#54  |   .1146705   .8049487     0.14   0.887    -1.463045    1.692386
+  female#61  |  -1.203207   .3198393    -3.76   0.000    -1.830098   -.5763157
+  female#62  |  -1.046328   .3366329    -3.11   0.002    -1.706135   -.3865207
+  female#63  |  -1.123803   .5280194    -2.13   0.033    -2.158731   -.0888748
+  female#64  |  -.5817042   .4779706    -1.22   0.224    -1.518536    .3551276
+  female#65  |  -.7274326   .3435603    -2.12   0.034    -1.400817   -.0540478
+             |
+       _cons |   10.62927   .4044225    26.28   0.000     9.836593    11.42194
+------------------------------------------------------------------------------
+
+. 
+end of do-file
+
+. do "C:\Users\huang\AppData\Local\Temp\STDb28_000000.tmp"
+
+. reg education sex##province,r
+
+Linear regression                               Number of obs     =     42,662
+                                                F(61, 42600)      =      24.68
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.0364
+                                                Root MSE          =     2.9289
+
+------------------------------------------------------------------------------
+             |               Robust
+   education |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+         sex |
+     female  |   .5584064   .2680452     2.08   0.037     .0330325     1.08378
+             |
+    province |
+         12  |  -.5610084    .284164    -1.97   0.048    -1.117975   -.0040414
+         13  |  -1.814584   .1890234    -9.60   0.000    -2.185074   -1.444094
+         14  |  -1.608221   .2087181    -7.71   0.000    -2.017312   -1.199129
+         15  |  -1.896115   .2266701    -8.37   0.000    -2.340393   -1.451837
+         21  |  -1.298478   .2103304    -6.17   0.000     -1.71073   -.8862266
+         22  |  -1.411588    .224815    -6.28   0.000     -1.85223   -.9709462
+         23  |  -1.651443   .2094565    -7.88   0.000    -2.061982   -1.240904
+         31  |  -.2517776   .2409047    -1.05   0.296    -.7239555    .2204002
+         32  |  -1.164755   .1951848    -5.97   0.000    -1.547321   -.7821888
+         33  |  -1.736939   .2023897    -8.58   0.000    -2.133627   -1.340251
+         34  |  -1.994929   .1960334   -10.18   0.000    -2.379158     -1.6107
+         35  |   -1.65047   .2170534    -7.60   0.000    -2.075899   -1.225041
+         36  |  -1.874759   .2028497    -9.24   0.000    -2.272348   -1.477169
+         37  |  -1.807504    .190474    -9.49   0.000    -2.180837   -1.434171
+         41  |  -1.860282   .1882709    -9.88   0.000    -2.229297   -1.491268
+         42  |  -1.462389   .1997155    -7.32   0.000    -1.853835   -1.070943
+         43  |   -1.67667   .1975317    -8.49   0.000    -2.063836   -1.289504
+         44  |  -1.458243   .1877034    -7.77   0.000    -1.826145    -1.09034
+         45  |  -2.284788   .2046087   -11.17   0.000    -2.685825   -1.883751
+         46  |  -2.052191   .2541462    -8.07   0.000    -2.550323    -1.55406
+         50  |  -2.355076    .220436   -10.68   0.000    -2.787135   -1.923017
+         51  |  -2.489393    .188337   -13.22   0.000    -2.858537   -2.120249
+         52  |  -2.761602   .2039617   -13.54   0.000    -3.161371   -2.361833
+         53  |  -2.975694   .2076176   -14.33   0.000    -3.382628   -2.568759
+         54  |  -3.604342   .4745022    -7.60   0.000    -4.534375   -2.674308
+         61  |  -1.228636   .2111927    -5.82   0.000    -1.642577   -.8146936
+         62  |  -2.144465   .2244908    -9.55   0.000    -2.584472   -1.704459
+         63  |  -2.178979   .3582309    -6.08   0.000    -2.881119    -1.47684
+         64  |  -1.939887   .3235579    -6.00   0.000    -2.574067   -1.305708
+         65  |   -1.81618   .2269773    -8.00   0.000     -2.26106     -1.3713
+             |
+sex#province |
+  female#12  |  -.6605633    .421413    -1.57   0.117    -1.486541    .1654144
+  female#13  |  -.7732839   .2886837    -2.68   0.007     -1.33911   -.2074582
+  female#14  |  -.8117376   .3134752    -2.59   0.010    -1.426155   -.1973199
+  female#15  |  -.4813951     .34372    -1.40   0.161    -1.155093    .1923029
+  female#21  |  -.9852987   .3149555    -3.13   0.002    -1.602618   -.3679798
+  female#22  |  -.9471694   .3343363    -2.83   0.005    -1.602475   -.2918637
+  female#23  |  -.4326886    .314534    -1.38   0.169    -1.049181    .1838042
+  female#31  |  -1.072939   .3640138    -2.95   0.003    -1.786413   -.3594646
+  female#32  |  -.8692467   .2985113    -2.91   0.004    -1.454335   -.2841587
+  female#33  |  -.8520987   .3059708    -2.78   0.005    -1.451807     -.25239
+  female#34  |  -.9660847   .2957012    -3.27   0.001    -1.545665   -.3865045
+  female#35  |  -.9089202   .3281188    -2.77   0.006    -1.552039    -.265801
+  female#36  |  -1.239055   .3074544    -4.03   0.000    -1.841672   -.6364384
+  female#37  |  -.8620944   .2892889    -2.98   0.003    -1.429106   -.2950824
+  female#41  |   -.682976   .2860238    -2.39   0.017    -1.243588   -.1223636
+  female#42  |   -.803872   .3054651    -2.63   0.009    -1.402589   -.2051544
+  female#43  |  -.8501599    .300126    -2.83   0.005    -1.438413   -.2619071
+  female#44  |  -.7908543   .2854042    -2.77   0.006    -1.350252   -.2314566
+  female#45  |   -.832442   .3059076    -2.72   0.007    -1.432027   -.2328571
+  female#46  |  -.6350668   .3759814    -1.69   0.091    -1.371998    .1018642
+  female#50  |  -.2471376   .3340947    -0.74   0.459    -.9019698    .4076945
+  female#51  |  -.8067665   .2874153    -2.81   0.005    -1.370106   -.2434269
+  female#52  |  -1.012592   .3095403    -3.27   0.001    -1.619297    -.405887
+  female#53  |  -.5751018   .3158295    -1.82   0.069    -1.194134    .0439301
+  female#54  |   .1146705   .8049487     0.14   0.887    -1.463045    1.692386
+  female#61  |  -1.203207   .3198393    -3.76   0.000    -1.830098   -.5763157
+  female#62  |  -1.046328   .3366329    -3.11   0.002    -1.706135   -.3865207
+  female#63  |  -1.123803   .5280194    -2.13   0.033    -2.158731   -.0888748
+  female#64  |  -.5817042   .4779706    -1.22   0.224    -1.518536    .3551276
+  female#65  |  -.7274326   .3435603    -2.12   0.034    -1.400817   -.0540478
+             |
+       _cons |   11.18768   .1748422    63.99   0.000     10.84498    11.53037
+------------------------------------------------------------------------------
+
+. 
+end of do-file
+
+. do "C:\Users\huang\AppData\Local\Temp\STDb28_000000.tmp"
+
+. clear
+
+. set more off
+
+. set seed 100            /* Set random seed to keep the results comparable */
+
+. 
+. 
+. cd "D:\Dropbox\Dropbox\My documents\Rochester\博五下\TA for ECO 485\Stata Recitation"
+D:\Dropbox\Dropbox\My documents\Rochester\博五下\TA for ECO 485\Stata Recitation
+
+. global folder "D:\Dropbox\Dropbox\My documents\Rochester\博五下\TA for ECO 485\Stata Recitation\data"              
+>   /* Sometimes you want to store your results in another folder */
+
+. 
+. 
+. capture log close
